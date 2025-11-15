@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Vault :: SECURE TERMINAL</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* Hacking Terminal Border Container */
+    .terminal-container {
+      position: relative;
+      width: 100%;
+      max-width: 1400px;
+      height: 90vh;
+      border: 2px solid #0f0;
+      box-shadow: 
+        0 0 10px #0f0,
+        0 0 20px #0f0,
+        0 0 40px #0f0,
+        inset 0 0 20px rgba(0, 255, 0, 0.1);
+      background: #000;
+      animation: borderPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes borderPulse {
+      0%, 100% {
+        box-shadow: 
+          0 0 10px #0f0,
+          0 0 20px #0f0,
+          0 0 40px #0f0,
+          inset 0 0 20px rgba(0, 255, 0, 0.1);
+      }
+      50% {
+        box-shadow: 
+          0 0 15px #0f0,
+          0 0 30px #0f0,
+          0 0 60px #0f0,
+          inset 0 0 30px rgba(0, 255, 0, 0.15);
+      }
+    }
+
+    /* Corner decorations */
+    .corner {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #0f0;
+    }
+
+    .corner-tl {
+      top: -2px;
+      left: -2px;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    .corner-tr {
+      top: -2px;
+      right: -2px;
+      border-left: none;
+      border-bottom: none;
+    }
+
+    .corner-bl {
+      bottom: -2px;
+      left: -2px;
+      border-right: none;
+      border-top: none;
+    }
+
+    .corner-br {
+      bottom: -2px;
+      right: -2px;
+      border-left: none;
+      border-top: none;
+    }
+
+    /* Header bar */
+    .terminal-header {
+      background: rgba(0, 255, 0, 0.1);
+      border-bottom: 1px solid #0f0;
+      padding: 8px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      text-shadow: 0 0 5px #0f0;
+    }
+
+    .status-indicator {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #0f0;
+      border-radius: 50%;
+      animation: blink 1.5s ease-in-out infinite;
+      box-shadow: 0 0 5px #0f0;
+    }
+
+    .terminal {
+      padding: 20px;
+      height: calc(100% - 35px);
+      overflow-y: auto;
+      background: #000;
+      position: relative;
+    }
+
+    /* Scanline effect */
+    .terminal::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 0, 0.03) 0px,
+        rgba(0, 255, 0, 0.03) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Moving scanline */
+    .terminal::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(0, 255, 0, 0.3);
+      box-shadow: 0 0 10px #0f0;
+      animation: scan 6s linear infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    @keyframes scan {
+      0% { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    .terminal::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .terminal::-webkit-scrollbar-track {
+      background: #000;
+      border-left: 1px solid #0f0;
+    }
+
+    .terminal::-webkit-scrollbar-thumb {
+      background: #0f0;
+      box-shadow: 0 0 5px #0f0;
+    }
+
+    .ascii-art {
+      color: rgb(0, 255, 0);
+      font-size: 10px;
+      line-height: 1.1;
+      white-space: pre;
+      margin: 10px 0;
+      text-shadow: 0 0 8px #0f0;
+      width: max-content;
+      margin-left: auto;
+      margin-right: auto;
+      position: relative;
+      z-index: 3;
+    }
+
+    .line {
+      margin: 3px 0;
+      font-size: 13px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .input-line {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      position: relative;
+      z-index: 3;
+    }
+
+    .prompt {
+      color: #0f0;
+      margin-right: 8px;
+      text-shadow: 0 0 5px #0f0;
+    }
+
+    input {
+      background: transparent;
+      border: none;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      outline: none;
+      flex: 1;
+      text-shadow: 0 0 3px #0f0;
+    }
+
+    input[type="password"] {
+      letter-spacing: 3px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 9px;
+      height: 1.1em;
+      background-color: #0f0;
+      margin-left: 1px;
+      animation: blink 1s step-end infinite;
+      box-shadow: 0 0 5px #0f0;
+    }
+
+    @keyframes blink {
+      from, to { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .error {
+      color: #f00;
+      text-shadow: 0 0 5px #f00;
+    }
+
+    .success {
+      color: #0f0;
+      text-shadow: 0 0 5px #0f0;
+    }
+
+    .dim {
+      color: #0a0;
+    }
+
+    .warning {
+      color: #ff0;
+      text-shadow: 0 0 5px #ff0;
+    }
+
+    .separator {
+      margin: 10px 0;
+    }
+
+    .gallery {
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+      position: relative;
+      z-index: 3;
+    }
+
+    .gallery.show {
+      display: grid;
+    }
+
+    .photo-card {
+      border: 1px solid #0f0;
+      padding: 10px;
+      background: #001a00;
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+      transition: all 0.3s;
+    }
+
+    .photo-card:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+      transform: scale(1.02);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border: 1px solid #0f0;
+    }
+
+    .photo-caption {
+      margin-top: 8px;
+      color: #0f0;
+      font-size: 11px;
+    }
+
+    button {
+      background: #000;
+      border: 1px solid #0f0;
+      color: #0f0;
+      padding: 8px 16px;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      margin: 10px 5px;
+      font-size: 12px;
+      text-shadow: 0 0 3px #0f0;
+      transition: all 0.2s;
+      position: relative;
+      z-index: 3;
+    }
+
+    button:hover {
+      background: #0f0;
+      color: #000;
+      box-shadow: 0 0 15px #0f0;
+      text-shadow: none;
+    }
+
+    .final-message {
+      border: 1px solid #0f0;
+      padding: 20px;
+      margin: 20px 0;
+      background: #001a00;
+      line-height: 1.8;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+      position: relative;
+      z-index: 3;
+    }
+
+    /* Matrix rain effect */
+    #matrix-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.15;
+      z-index: 0;
+    }
+
+    /* Achievement notification */
+    .achievement {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 255, 0, 0.95);
+      color: #000;
+      padding: 15px 20px;
+      border: 2px solid #0f0;
+      box-shadow: 0 0 20px #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: bold;
+      animation: slideIn 0.5s ease-out, slideOut 0.5s ease-in 3.5s;
+      z-index: 1000;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(400px); opacity: 0; }
+    }
+
+    .progress-bar {
+      background: #001a00;
+      border: 1px solid #0f0;
+      height: 20px;
+      margin: 10px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0f0, #0a0);
+      box-shadow: 0 0 10px #0f0;
+      transition: width 0.3s ease;
+    }
+
+    /* Glitch effect */
+    @keyframes glitch {
+      0% { transform: translate(0); }
+      20% { transform: translate(-2px, 2px); }
+      40% { transform: translate(-2px, -2px); }
+      60% { transform: translate(2px, 2px); }
+      80% { transform: translate(2px, -2px); }
+      100% { transform: translate(0); }
+    }
+
+    .glitch {
+      animation: glitch 0.3s infinite;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  
+  <div class="terminal-container">
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+    
+    <div class="terminal-header">
+      <div>SECURE TERMINAL v3.7.2 | MEMORY VAULT SYSTEM</div>
+      <div class="status-indicator">
+        <span>ENCRYPTED</span>
+        <div class="status-dot"></div>
+      </div>
+    </div>
+    
+    <div class="terminal" id="terminal">
+      <div id="content"></div>
+      <div class="input-line" id="inputLine" style="display: none;">
+        <span class="prompt" id="promptText">root@vault:~#</span>
+        <input type="text" id="commandInput" autocomplete="off" autofocus>
+        <span class="cursor"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const USERS = { 'admin': '2060' };
+
+    const STATE = {
+      authenticated: false,
+      currentUser: '',
+      currentDir: '~',
+      folders: {
+        'folder1': {
+          locked: true,
+          password: '2019',
+          hint: '[first bike year is password]',
+          photos: [],
+          attempts: 0,
+          maxAttempts: 3
+        },
+        'folder2': {
+          locked: true,
+          password: '2017',
+          hint: '[college joining year is password]',
+          photos: [],
+          attempts: 0,
+          maxAttempts: 3
+        },
+        'folder3': {
+          locked: true,
+          password: '2020',
+          hint: '[first job year is password]',
+          photos: [],
+          attempts: 0,
+          maxAttempts: 3
+        },
+        'folder4': {
+          locked: true,
+          password: '2018',
+          hint: '[family trip year is password]',
+          photos: [],
+          attempts: 0,
+          maxAttempts: 3
+        },
+        'folderX': {
+          locked: true,
+          password: '8074',
+          hint: '[sum of all folder passwords]',
+          photos: [],
+          special: true,
+          attempts: 0,
+          maxAttempts: 3
+        }
+      },
+      currentFolder: null,
+      currentPhase: 'boot',
+      waitingForPassword: false,
+      commandHistory: [],
+      historyIndex: -1,
+      locked: false,
+      loginAttempts: 0,
+      maxLoginAttempts: 3,
+      achievements: [],
+      startTime: null,
+      matrixInterval: null
+    };
+
+    const logo = `
+███╗   ███╗███████╗███╗   ███╗ ██████╗ ██████╗ ██╗███████╗███████╗
+████╗ ████║██╔════╝████╗ ████║██╔═══██╗██╔══██╗██║██╔════╝██╔════╝
+██╔████╔██║█████╗  ██╔████╔██║██║   ██║██████╔╝██║█████╗  ███████╗
+██║╚██╔╝██║██╔══╝  ██║╚██╔╝██║██║   ██║██╔══██╗██║██╔══╝  ╚════██║
+██║ ╚═╝ ██║███████╗██║ ╚═╝ ██║╚██████╔╝██║  ██║██║███████╗███████║
+╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝
+    `;
+    
+    const warningBanner = `================================
+[WARNING] This is a
+PRIVATE AND SECURE system. 
+All access is logged. Unauthorized connection attempts will be 
+prosecuted to the full extent of the law.
+========================================`;
+
+    const terminal = document.getElementById('terminal');
+    const content = document.getElementById('content');
+    const inputLine = document.getElementById('inputLine');
+    const commandInput = document.getElementById('commandInput');
+    const promptText = document.getElementById('promptText');
+
+    // Matrix rain effect
+    function initMatrix() {
+      const canvas = document.getElementById('matrix-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+      const fontSize = 14;
+      const columns = canvas.width / fontSize;
+      const drops = Array(Math.floor(columns)).fill(1);
+      
+      function draw() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#0f0';
+        ctx.font = fontSize + 'px monospace';
+        
+        for (let i = 0; i < drops.length; i++) {
+          const text = chars[Math.floor(Math.random() * chars.length)];
+          ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+          
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            drops[i] = 0;
+          }
+          drops[i]++;
+        }
+      }
+      
+      STATE.matrixInterval = setInterval(draw, 33);
+    }
+
+    // Achievement system
+    function unlockAchievement(name, description) {
+      if (STATE.achievements.includes(name)) return;
+      
+      STATE.achievements.push(name);
+      
+      const achievement = document.createElement('div');
+      achievement.className = 'achievement';
+      achievement.innerHTML = `
+        <div>🏆 ACHIEVEMENT UNLOCKED</div>
+        <div style="margin-top: 5px; font-weight: normal;">${description}</div>
+      `;
+      document.body.appendChild(achievement);
+      
+      setTimeout(() => {
+        achievement.remove();
+      }, 4000);
+    }
+
+    // Easter eggs
+    const easterEggs = {
+      'matrix': () => {
+        addLine('Entering Matrix mode...', 'success');
+        if (!STATE.matrixInterval) {
+          initMatrix();
+          addLine('Matrix rain activated. Reality is malleable.', 'dim');
+        } else {
+          clearInterval(STATE.matrixInterval);
+          STATE.matrixInterval = null;
+          const canvas = document.getElementById('matrix-canvas');
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          addLine('Matrix rain deactivated.', 'dim');
+        }
+      },
+      'whoami': () => {
+        addLine('You are the key holder. The guardian of memories.', 'success');
+      },
+      'date': () => {
+        addLine(new Date().toString(), 'dim');
+      },
+      'sudo': () => {
+        addLine('Nice try. You already have root access.', 'warning');
+        unlockAchievement('sudo_attempt', 'Tried to sudo with root access');
+      },
+      'hack': () => {
+        addLine('HACKING IN PROGRESS...', 'success');
+        setTimeout(() => addLine('[████████████████████] 100%', 'success'), 500);
+        setTimeout(() => addLine('Just kidding. You are already in.', 'dim'), 1500);
+      },
+      'hint': () => {
+        const locked = Object.entries(STATE.folders).filter(([_, f]) => f.locked);
+        if (locked.length > 0) {
+          addLine('LOCKED FOLDERS:', 'warning');
+          locked.forEach(([name, folder]) => {
+            addLine(`  ${name}: ${folder.hint}`, 'dim');
+          });
+        } else {
+          addLine('All folders unlocked! Try "cd folderX" for the final message.', 'success');
+        }
+      },
+      'status': () => {
+        const total = Object.keys(STATE.folders).length;
+        const unlocked = Object.values(STATE.folders).filter(f => !f.locked).length;
+        const progress = Math.round((unlocked / total) * 100);
+        
+        addLine('SYSTEM STATUS:', 'success');
+        addSeparator();
+        addLine(`Progress: ${unlocked}/${total} folders unlocked (${progress}%)`, 'dim');
+        addLine(`Achievements: ${STATE.achievements.length}`, 'dim');
+        if (STATE.startTime) {
+          const elapsed = Math.floor((Date.now() - STATE.startTime) / 1000);
+          addLine(`Session time: ${elapsed}s`, 'dim');
+        }
+        
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.innerHTML = `<div class="progress-fill" style="width: ${progress}%"></div>`;
+        content.appendChild(progressBar);
+      }
+    };
+
+    function addLine(text, className = '') {
+      const line = document.createElement('div');
+      line.className = 'line ' + className;
+      line.textContent = text;
+      content.appendChild(line);
+      scrollToBottom();
+    }
+
+    function typeLine(text, className = '', callback, speed = 20) {
+      const line = document.createElement('div');
+      line.className = 'line ' + className;
+      content.appendChild(line);
+      let i = 0;
+      function typeChar() {
+        if (i < text.length) {
+          line.textContent += text.charAt(i);
+          i++;
+          scrollToBottom();
+          setTimeout(typeChar, speed);
+        } else if (callback) {
+          callback();
+        }
+      }
+      typeChar();
+    }
+
+    function runSequence(sequence, finalCallback) {
+      let index = 0;
+      function next() {
+        if (index < sequence.length) {
+          const item = sequence[index++];
+          typeLine(item.text, item.class, next, item.speed);
+        } else if (finalCallback) {
+          finalCallback();
+        }
+      }
+      next();
+    }
+
+    function addSeparator() {
+      const sep = document.createElement('div');
+      sep.className = 'separator';
+      content.appendChild(sep);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function clearScreen() {
+      if (!STATE.authenticated) {
+        content.innerHTML = ''; return;
+      }
+      const lines = content.children;
+      let clearFromIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].textContent.includes('access granted')) {
+          clearFromIndex = i + 1; break;
+        }
+      }
+      if (clearFromIndex !== -1) {
+        while (content.children.length > clearFromIndex) {
+          content.removeChild(content.lastChild);
+        }
+      }
+    }
+
+    function showInput(type) {
+      STATE.locked = false;
+      if (type === 'username') {
+        promptText.textContent = 'login:';
+        commandInput.type = 'text';
+      } else if (type === 'password') {
+        promptText.textContent = 'password:';
+        commandInput.type = 'password';
+      } else if (type === 'command') {
+        promptText.textContent = `${STATE.currentUser}@vault:${STATE.currentDir}#`;
+        commandInput.type = 'text';
+      } else if (type === 'folder-password') {
+        promptText.textContent = 'password:';
+        commandInput.type = 'password';
+      }
+      inputLine.style.display = 'flex';
+      commandInput.value = '';
+      commandInput.focus();
+    }
+
+    function hideInput() {
+      STATE.locked = true;
+      inputLine.style.display = 'none';
+    }
+
+    function bootSequence() {
+      hideInput();
+      const art = document.createElement('div');
+      art.className = 'ascii-art';
+      art.textContent = logo;
+
+      const bootLines = [
+        { text: warningBanner, class: 'warning', speed: 10 },
+        { text: ' ', class: '', speed: 10 },
+        { text: 'Initializing MEMORY VAULT v3.7.2...', class: 'dim', speed: 30 },
+        { text: 'Loading kernel modules... OK', class: 'dim', speed: 30 },
+        { text: 'Mounting secure file system... OK', class: 'dim', speed: 30 },
+        { text: 'Starting encryption services... OK', class: 'dim', speed: 30 },
+        { text: 'Awaiting user authentication.', class: '', speed: 30 }
+      ];
+
+      content.appendChild(art);
+      addSeparator();
+
+      runSequence(bootLines, () => {
+        addSeparator();
+        addLine('[login hint: 5 letters]', 'dim');
+        addLine('[password hint: 2025 + age]', 'dim');
+        addSeparator();
+        showInput('username');
+      });
+    }
+
+    function handleAuth(username, password) {
+      hideInput();
+      addLine('Authenticating...', 'dim');
+
+      setTimeout(() => {
+        if (USERS[username] && USERS[username] === password) {
+          STATE.authenticated = true;
+          STATE.currentUser = username;
+          STATE.startTime = Date.now();
+          addSeparator();
+          addLine('...AUTHENTICATION SUCCESSFUL.', 'success');
+          addLine('Welcome, admin. Access granted.', 'success');
+          addSeparator();
+          addLine('Type "help" for commands', 'dim');
+          addSeparator();
+          STATE.currentPhase = 'command';
+          unlockAchievement('first_login', 'Successfully logged in');
+          showInput('command');
+        } else {
+          STATE.loginAttempts++;
+          addSeparator();
+          addLine('...AUTHENTICATION FAILED.', 'error');
+          addLine(`Access Denied. Credentials invalid. (${STATE.loginAttempts}/${STATE.maxLoginAttempts})`, 'error');
+          
+          if (STATE.loginAttempts >= STATE.maxLoginAttempts) {
+            addLine('', '');
+            addLine('MAXIMUM ATTEMPTS REACHED. SECURITY LOCKDOWN INITIATED.', 'error');
+            addLine('System will reset in 5 seconds...', 'warning');
+            setTimeout(() => location.reload(), 5000);
+            return;
+          }
+          
+          addSeparator();
+          showInput('username');
+        }
+      }, 1000);
+    }
+
+    function runDecryptionSequence(password, folder) {
+      hideInput();
+      const bar = "||||||||||||||||||||";
+      const decryptLines = [
+        { text: 'Initializing decryption process...', class: 'dim', speed: 30 },
+        { text: 'Target: ' + STATE.currentFolder, class: 'dim', speed: 30 },
+        { text: 'Analyzing encryption: AES-256... OK', class: 'dim', speed: 30 },
+        { text: 'Attempting key: ' + '*'.repeat(password.length), class: 'dim', speed: 30 },
+      ];
+
+      if (password === folder.password) {
+        decryptLines.push(...[
+          { text: '...Key accepted.', class: 'success', speed: 30 },
+          { text: 'Decrypting file index [', class: 'dim', speed: 30 },
+          { text: 'Decrypting file index [' + bar, class: 'success', speed: 50 },
+          { text: 'DECRYPTION COMPLETE.', class: 'success', speed: 30 }
+        ]);
+
+        runSequence(decryptLines, () => {
+          folder.locked = false;
+          folder.attempts = 0;
+          addSeparator();
+          addLine('Access Granted. Folder unlocked.', 'success');
+          addSeparator();
+          
+          // Achievement for first folder unlock
+          const unlockedCount = Object.values(STATE.folders).filter(f => !f.locked).length;
+          if (unlockedCount === 1) {
+            unlockAchievement('first_unlock', 'Unlocked your first folder');
+          }
+          
+          // Achievement for speed unlock
+          if (folder.attempts === 0) {
+            unlockAchievement('perfect_crack', 'Cracked password on first try');
+          }
+          
+          // Achievement for unlocking all regular folders
+          if (unlockedCount === Object.keys(STATE.folders).length - 1 && STATE.folders.folderX.locked) {
+            unlockAchievement('vault_master', 'Unlocked all regular folders');
+            addLine('HINT: Only the special vault remains...', 'warning');
+            addSeparator();
+          }
+          
+          if (folder.special) {
+            addLine('🎉 SPECIAL VAULT ACCESSED 🎉', 'warning');
+            addLine('type "note" to read message', 'dim');
+            addSeparator();
+            unlockAchievement('vault_breaker', 'Accessed the special vault');
+          }
+          STATE.waitingForPassword = false;
+          STATE.currentPhase = 'command';
+          showInput('command');
+        });
+
+      } else {
+        folder.attempts++;
+        const remaining = folder.maxAttempts - folder.attempts;
+        
+        decryptLines.push(...[
+          { text: '...Key rejected.', class: 'error', speed: 30 },
+          { text: 'DECRYPTION FAILED.', class: 'error', speed: 30 }
+        ]);
+
+        runSequence(decryptLines, () => {
+          addSeparator();
+          addLine('Access Denied. Incorrect password.', 'error');
+          
+          if (remaining > 0) {
+            addLine(`Attempts remaining: ${remaining}`, 'warning');
+            addLine(folder.hint, 'dim');
+          } else {
+            addLine('MAXIMUM ATTEMPTS REACHED. Folder temporarily locked.', 'error');
+            addLine('Return to home with "cd .." and try again.', 'dim');
+            STATE.currentDir = '~';
+            STATE.currentFolder = null;
+          }
+          
+          addSeparator();
+          STATE.waitingForPassword = false;
+          STATE.currentPhase = 'command';
+          showInput('command');
+        });
+      }
+    }
+
+    function handleUnlock(password) {
+      const folder = STATE.folders[STATE.currentFolder];
+      runDecryptionSequence(password, folder);
+    }
+
+    function handleCommand(cmd) {
+      const parts = cmd.trim().split(' ');
+      const command = parts[0].toLowerCase();
+      const args = parts.slice(1).join(' ');
+
+      addLine(`${STATE.currentUser}@vault:${STATE.currentDir}# ${cmd}`);
+
+      switch (command) {
+        case 'help': showHelp(); break;
+        case 'ls': listFolders(); break;
+        case 'cd': changeDirectory(args); break;
+        case 'view': viewPhotos(); break;
+        case 'note': showNote(); break;
+        case 'clear': clearScreen(); break;
+        case 'exit': location.reload(); return;
+        default: addLine(`command not found: ${command}`, 'error');
+      }
+
+      if (!STATE.locked) {
+        addSeparator();
+        showInput('command');
+      }
+    }
+
+    function showHelp() {
+      addSeparator();
+      addLine('AVAILABLE COMMANDS:');
+      addSeparator();
+      addLine('  ls              list folders/files');
+      addLine('  cd <folder>     enter folder');
+      addLine('  cd ..           back to home');
+      addLine('  view            view files in current folder');
+      addLine('  note            read note (folderX only)');
+      addLine('  clear           clear screen');
+      addLine('  exit            logout and reset terminal');
+    }
+
+    function listFolders() {
+      addSeparator();
+      if (STATE.currentFolder) {
+        const photos = STATE.folders[STATE.currentFolder].photos;
+        if (photos.length === 0) {
+          addLine('no files in this directory', 'dim');
+        } else {
+          addLine('FILES:');
+          addSeparator();
+          photos.forEach((photo, i) => {
+            addLine(`  ${(i + 1).toString().padStart(2, '0')}. ${photo.name}`, 'dim');
+          });
+        }
+      } else {
+        addLine('FOLDERS:');
+        addSeparator();
+        Object.keys(STATE.folders).forEach(folder => {
+          const status = STATE.folders[folder].locked ? 'LOCKED' : 'OPEN';
+          const color = STATE.folders[folder].locked ? 'error' : 'success';
+          const mark = STATE.folders[folder].special ? ' *' : '';
+          addLine(`  ${folder}${mark}`.padEnd(18) + `[${status}]`, color);
+        });
+      }
+    }
+
+    function changeDirectory(folder) {
+      if (!folder || folder === '..' || folder === '~') {
+        STATE.currentDir = '~';
+        STATE.currentFolder = null;
+        addLine('Returning to home directory: ~');
+        return;
+      }
+      if (STATE.folders[folder]) {
+        STATE.currentDir = folder;
+        STATE.currentFolder = folder;
+        addLine(`Changed directory to: ${folder}`);
+        addSeparator();
+        if (STATE.folders[folder].locked) {
+          addLine('!! FOLDER IS LOCKED !!', 'warning');
+          addLine('Authentication required.', 'warning');
+          addLine(STATE.folders[folder].hint, 'dim');
+          addSeparator();
+          STATE.waitingForPassword = true;
+          showInput('folder-password');
+        } else {
+          addLine('Folder unlocked. Access permitted.', 'success');
+        }
+      } else {
+        addLine(`folder not found: ${folder}`, 'error');
+      }
+    }
+
+    function viewPhotos() {
+      if (!STATE.currentFolder) {
+        addLine('Cannot view: not in a folder.', 'error'); return;
+      }
+      if (STATE.folders[STATE.currentFolder].locked) {
+        addLine('Cannot view: folder is locked.', 'error'); return;
+      }
+      const photos = STATE.folders[STATE.currentFolder].photos;
+      if (photos.length === 0) {
+        addLine('no files to view in this directory', 'dim'); return;
+      }
+
+      hideInput();
+      clearScreen();
+      addLine(`VIEWING GALLERY: ${STATE.currentFolder}`, 'success');
+      addSeparator();
+
+      const gallery = document.createElement('div');
+      gallery.className = 'gallery show';
+      photos.forEach(photo => {
+        const card = document.createElement('div');
+        card.className = 'photo-card';
+        card.innerHTML = `
+          <img src="${photo.src}" alt="${photo.name}">
+          <div class="photo-caption">${photo.name}</div>
+        `;
+        gallery.appendChild(card);
+      });
+      content.appendChild(gallery);
+
+      const backBtn = document.createElement('button');
+      backBtn.textContent = '<< Back to Terminal';
+      backBtn.onclick = () => {
+        clearScreen();
+        addLine(`current directory: ${STATE.currentFolder}`);
+        addSeparator();
+        showInput('command');
+      };
+      content.appendChild(backBtn);
+    }
+
+    function showNote() {
+      if (STATE.currentFolder !== 'folderX') {
+        addLine('`note` command only available in `folderX`', 'error'); return;
+      }
+      if (STATE.folders[STATE.currentFolder].locked) {
+        addLine('Cannot read: folder is locked.', 'error'); return;
+      }
+
+      hideInput();
+      clearScreen();
+      addLine('DECRYPTED NOTE:', 'success');
+      addSeparator();
+
+      const msg = document.createElement('div');
+      msg.className = 'final-message';
+      msg.innerHTML = `
+        <div style="text-align: center;">
+          <p>HAPPY BIRTHDAY, [BROTHER'S NAME]!</p>
+          <p style="margin-top: 20px;">You 'hacked' your way into the vault.</p>
+          <p style="margin-top: 20px;">These folders aren't just data, they're our memories. Every laugh, every challenge, every year you've grown.</p>
+          <p style="margin-top: 40px;">Here's to many more 'missions' and memories ahead.</p>
+          <p style="margin-top: 20px;">Proud of you. Keep pushing forward.</p>
+        </div>
+      `;
+      content.appendChild(msg);
+
+      const backBtn = document.createElement('button');
+      backBtn.textContent = '<< Back to Terminal';
+      backBtn.onclick = () => {
+        clearScreen();
+        addSeparator();
+        showInput('command');
+      };
+      content.appendChild(backBtn);
+    }
+
+    commandInput.addEventListener('keydown', (e) => {
+      if (STATE.locked) { e.preventDefault(); return; }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (STATE.commandHistory.length > 0) {
+          if (STATE.historyIndex === -1) {
+            STATE.historyIndex = STATE.commandHistory.length - 1;
+          } else if (STATE.historyIndex > 0) {
+            STATE.historyIndex--;
+          }
+          e.target.value = STATE.commandHistory[STATE.historyIndex];
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (STATE.historyIndex !== -1) {
+          STATE.historyIndex++;
+          if (STATE.historyIndex >= STATE.commandHistory.length) {
+            STATE.historyIndex = -1;
+            e.target.value = '';
+          } else {
+            e.target.value = STATE.commandHistory[STATE.historyIndex];
+          }
+        }
+      }
+    });
+
+    commandInput.addEventListener('keypress', (e) => {
+      if (STATE.locked) { e.preventDefault(); return; }
+      if (e.key === 'Enter') {
+        const input = e.target.value.trim();
+        e.target.value = '';
+        if (!input && (STATE.currentPhase === 'command' || STATE.waitingForPassword)) {
+          addLine(`${promptText.textContent}`);
+          return;
+        }
+
+        if (!STATE.authenticated) {
+          if (e.target.type === 'text') {
+            STATE.currentUser = input;
+            addLine(`login: ${input}`);
+            showInput('password');
+          } else {
+            addLine(`password: ${'*'.repeat(input.length)}`);
+            handleAuth(STATE.currentUser, input);
+          }
+        } else if (STATE.waitingForPassword) {
+          addLine(`password: ${'*'.repeat(input.length)}`);
+          handleUnlock(input);
+        } else {
+          if (STATE.currentPhase === 'command') {
+            if (input) STATE.commandHistory.push(input);
+            STATE.historyIndex = -1;
+          }
+          handleCommand(input);
+        }
+      }
+    });
+
+    bootSequence();
+  </script>
+</body>
+
+</html>
